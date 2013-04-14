@@ -16,10 +16,26 @@ module QueryReviewer
       base.helper_method :query_review_output
     end
 
+    def logToFile(query_hash)
+      #formatted_time = Time.now.strftime("%Y-%m-%d %H:%M:%S")
+      formatted_output = ""
+      formatted_output << "current url: #{request.fullpath}\n\n"
+      formatted_output << "Queries executed in/during rendering of page:\n"
+      if query_hash.count > 0
+        query_hash.collect{|x| x.last.sqls}.each do |x|
+          formatted_output << "#{x}\n"
+        end
+        formatted_output << "\n\n"
+      end
+      File.open(::Rails.root.join('log/page_query.log'), 'a') { |f| f.write(formatted_output) }
+    end
+
     def query_review_output(ajax = false, total_time = nil)
       faux_view = QueryViewBase.new([File.join(File.dirname(__FILE__), "views")], {}, self)
       queries = Thread.current["queries"]
       queries.analyze!
+      self.logToFile(queries.query_hash)
+
       faux_view.instance_variable_set("@queries", queries)
       faux_view.instance_variable_set("@total_time", total_time)
       if ajax
